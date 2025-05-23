@@ -1,31 +1,30 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import "bootstrap/dist/css/bootstrap.min.css";
-import "./App.css"; // Importando CSS personalizado
+import "./App.css";
 
 function App() {
   const [usuarios, setUsuarios] = useState([]);
   const [campoFiltro, setCampoFiltro] = useState("");
   const [valorFiltro, setValorFiltro] = useState("");
   const [opcoesFiltro, setOpcoesFiltro] = useState([]);
+  // Estado para controlar quais usuários têm dados revelados
+  const [usuariosRevelados, setUsuariosRevelados] = useState({});
 
+  // Buscar usuários da API
   useEffect(() => {
-    // Buscar usuários da API e garantir que todos tenham ID
     axios.get("https://jsonplaceholder.typicode.com/users")
       .then((res) => {
-        // Garantir que todos os usuários tenham ID
-        const usuariosComId = res.data.map((usuario, index) => {
-          // Se o usuário não tiver ID, atribuir um baseado no índice
-          if (!usuario.id) {
-            return { ...usuario, id: index + 1 };
-          }
-          return usuario;
-        });
+        // Garantir IDs para todos os usuários
+        const usuariosComId = res.data.map((usuario, index) => 
+          usuario.id ? usuario : { ...usuario, id: index + 1 }
+        );
         setUsuarios(usuariosComId);
       })
-      .catch((err) => console.error("Erro ao buscar usuários:", err));
+      .catch((err) => console.error("Erro:", err));
   }, []);
 
+  // Campos disponíveis para filtro
   const camposDisponiveis = [
     { label: "Nome", value: "name" },
     { label: "Email", value: "email" },
@@ -36,63 +35,60 @@ function App() {
     { label: "Empresa", value: "company.name" }
   ];
 
-  // Função getValor melhorada para lidar com campos aninhados de forma mais robusta
+  // Função para acessar propriedades aninhadas
   const getValor = (obj, caminho) => {
     if (!obj || !caminho) return "";
     try {
-      return caminho.split('.').reduce((acc, parte) => {
-        return acc && acc[parte] !== undefined ? acc[parte] : "";
-      }, obj);
-    } catch (error) {
-      console.error("Erro ao acessar propriedade:", error);
+      return caminho.split('.').reduce((acc, parte) => 
+        acc && acc[parte] !== undefined ? acc[parte] : "", obj);
+    } catch {
       return "";
     }
   };
 
+  // Atualizar opções de filtro quando o campo muda
   useEffect(() => {
     if (!campoFiltro) {
       setOpcoesFiltro([]);
       return;
     }
-
-    // Obter valores únicos e filtrar valores vazios ou undefined
+    
+    // Obter valores únicos, filtrar vazios e ordenar
     const valoresUnicos = [...new Set(
       usuarios
-        .map((u) => getValor(u, campoFiltro))
-        .filter(valor => valor !== undefined && valor !== null && valor !== "")
-    )];
-    
-    // Ordenar valores para melhor experiência do usuário
-    valoresUnicos.sort((a, b) => {
-      if (typeof a === 'string' && typeof b === 'string') {
-        return a.localeCompare(b);
-      }
-      return String(a).localeCompare(String(b));
-    });
+        .map(u => getValor(u, campoFiltro))
+        .filter(valor => valor)
+    )].sort((a, b) => String(a).localeCompare(String(b)));
     
     setOpcoesFiltro(valoresUnicos);
     setValorFiltro("");
   }, [campoFiltro, usuarios]);
 
-  const filtrarUsuarios = () => {
-    if (!campoFiltro || !valorFiltro) return usuarios;
+  // Filtrar usuários com base nos critérios selecionados
+  const usuariosFiltrados = !campoFiltro || !valorFiltro 
+    ? usuarios 
+    : usuarios.filter(usuario => 
+        String(getValor(usuario, campoFiltro)) === String(valorFiltro));
 
-    return usuarios.filter((usuario) => {
-      const valorCampo = getValor(usuario, campoFiltro);
-      // Comparação mais robusta para evitar problemas com tipos diferentes
-      return valorCampo !== "" && String(valorCampo) === String(valorFiltro);
-    });
+  // Alternar revelação de dados do usuário com duplo clique
+  const alternarRevelacao = (id) => {
+    setUsuariosRevelados(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
   };
 
-  // Obter os usuários filtrados para uso na renderização
-  const usuariosFiltrados = filtrarUsuarios();
+  // Mascarar texto para exibição oculta
+  const mascarar = (texto) => {
+    return texto ? "*".repeat(Math.min(texto.length, 8)) : "";
+  };
 
   return (
     <div className="container-fluid py-4">
       <h1 className="text-center mb-5 fw-bold">📊 Painel Interativo de Usuários</h1>
 
+      {/* Controles de filtro */}
       <div className="row justify-content-center g-3 mb-4 align-items-center">
-        {/* Botão "Mostrar Todos" */}
         <div className="col-auto">
           <button
             className="btn btn-outline-dark"
@@ -105,11 +101,8 @@ function App() {
           </button>
         </div>
 
-        {/* Campo para selecionar o tipo de filtro */}
         <div className="col-6 col-md-3">
-          <label htmlFor="campoFiltro" className="form-label visually-hidden">Filtrar por</label>
           <select
-            id="campoFiltro"
             className="form-select"
             value={campoFiltro}
             onChange={(e) => setCampoFiltro(e.target.value)}
@@ -121,12 +114,9 @@ function App() {
           </select>
         </div>
 
-        {/* Campo com valores únicos, aparece dinamicamente */}
         {opcoesFiltro.length > 0 && (
           <div className="col-6 col-md-3">
-            <label htmlFor="valorFiltro" className="form-label visually-hidden">Valor</label>
             <select
-              id="valorFiltro"
               className="form-select"
               value={valorFiltro}
               onChange={(e) => setValorFiltro(e.target.value)}
@@ -140,12 +130,12 @@ function App() {
         )}
       </div>
 
-      {/* Container padronizado para listagem de usuários */}
+      {/* Listagem de usuários */}
       <div className="user-container">
         {/* Mensagem quando não há resultados */}
         {usuariosFiltrados.length === 0 && (
           <div className="no-results">
-            <h4 className="text-muted">Nenhum usuário encontrado com os filtros selecionados.</h4>
+            <h4 className="text-muted">Nenhum usuário encontrado</h4>
             <button 
               className="btn btn-primary mt-3"
               onClick={() => {
@@ -161,17 +151,31 @@ function App() {
         {/* Grid de cartões de usuários */}
         <div className="user-grid">
           {usuariosFiltrados.map((usuario) => (
-            <div className="user-card" key={usuario.id || `temp-${Math.random()}`}>
+            <div className="user-card" key={usuario.id}>
               <div className="card shadow rounded-4 h-100 border-0">
                 <div className="card-body">
-                  <h5 className="card-title fw-semibold text-primary">{usuario.name}</h5>
+                  {/* Nome com duplo clique para revelar dados */}
+                  <h5 
+                    className="card-title fw-semibold text-primary"
+                    onDoubleClick={() => alternarRevelacao(usuario.id)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    {usuario.name}
+                  </h5>
+                  
                   <p className="card-text small">
-                    <strong>Usuário:</strong> {usuario.username} <br />
-                    <strong>Email:</strong> {usuario.email} <br />
-                    <strong>Telefone:</strong> {usuario.phone} <br />
-                    <strong>Site:</strong> <a href={`http://${usuario.website}`} target="_blank" rel="noreferrer">{usuario.website}</a><br />
-                    <strong>Empresa:</strong> {usuario.company?.name || "N/A"} <br />
-                    <strong>Cidade:</strong> {usuario.address?.city || "N/A"}
+                    <strong>Usuário:</strong> {usuariosRevelados[usuario.id] ? usuario.username : mascarar(usuario.username)} <br />
+                    <strong>Email:</strong> {usuariosRevelados[usuario.id] ? usuario.email : mascarar(usuario.email)} <br />
+                    <strong>Telefone:</strong> {usuariosRevelados[usuario.id] ? usuario.phone : mascarar(usuario.phone)} <br />
+                    <strong>Site:</strong> {usuariosRevelados[usuario.id] 
+                      ? <a href={`http://${usuario.website}`} target="_blank" rel="noreferrer">{usuario.website}</a>
+                      : mascarar(usuario.website)}<br />
+                    <strong>Empresa:</strong> {usuariosRevelados[usuario.id] 
+                      ? (usuario.company?.name || "N/A") 
+                      : mascarar(usuario.company?.name)} <br />
+                    <strong>Cidade:</strong> {usuariosRevelados[usuario.id] 
+                      ? (usuario.address?.city || "N/A") 
+                      : mascarar(usuario.address?.city)}
                   </p>
                 </div>
               </div>
@@ -179,11 +183,6 @@ function App() {
           ))}
         </div>
       </div>
-
-      {/* Rodapé simples */}
-      <footer className="text-center mt-5 text-muted small">
-        Desenvolvido com ❤️
-      </footer>
     </div>
   );
 }

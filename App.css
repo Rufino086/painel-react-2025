@@ -1,13 +1,11 @@
-/* Estilos personalizados para garantir layout consistente em todos os dispositivos */
-
-/* Container principal para a listagem de usuários */
+/* Estilos para layout responsivo */
 .user-container {
   width: 100%;
   padding: 0 15px;
   margin-bottom: 30px;
 }
 
-/* Grid responsivo para os cartões de usuários */
+/* Grid responsivo para cartões */
 .user-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -16,7 +14,7 @@
   margin: 0 auto;
 }
 
-/* Para telas médias (tablets) */
+/* Responsividade para tablets */
 @media (min-width: 768px) {
   .user-grid {
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -25,7 +23,7 @@
   }
 }
 
-/* Para telas grandes (desktops) */
+/* Responsividade para desktops */
 @media (min-width: 992px) {
   .user-grid {
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -33,14 +31,13 @@
   }
 }
 
-/* Estilo para cada cartão de usuário */
+/* Cartão de usuário */
 .user-card {
   width: 100%;
   margin-bottom: 0;
   display: flex;
 }
 
-/* Garantir que o cartão ocupe 100% da altura do grid cell */
 .user-card .card {
   width: 100%;
   height: 100%;
@@ -48,7 +45,7 @@
   flex-direction: column;
 }
 
-/* Estilo para quando não há resultados */
+/* Mensagem quando não há resultados */
 .no-results {
   width: 100%;
   text-align: center;
@@ -56,7 +53,7 @@
   grid-column: 1 / -1;
 }
 
-/* Ajustes para garantir que o conteúdo do cartão seja consistente */
+/* Conteúdo do cartão */
 .card-body {
   display: flex;
   flex-direction: column;
@@ -65,9 +62,21 @@
 
 .card-title {
   margin-bottom: 15px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.card-title:hover {
+  color: #0056b3 !important;
 }
 
 .card-text {
   flex-grow: 1;
   line-height: 1.6;
+}
+
+/* Estilo para texto oculto */
+.texto-oculto {
+  font-family: monospace;
+  letter-spacing: 1px;
 }
